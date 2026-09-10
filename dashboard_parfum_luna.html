@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Persediaan, Pembelian & Penjualan — Parfum & Aksesoris LUNA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0F2; --panel:#FFFFFF; --ink:#16232E; --ink-2:#4C5C68; --ink-3:#7C8B96;
+  --line:#D6DCE1; --line-2:#E8EDF0;
+  --parfum:#A8701F; --parfum-soft:#F0E3CE;
+  --luna:#2C6A8C; --luna-soft:#D8E6EE;
+  --alert:#9E3229; --alert-soft:#F2DCD9;
+  --good:#2C6B4A;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.55; font-feature-settings:"tnum" 1,"lnum" 1;
+}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px 72px}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+/* hero */
+header.hero{padding:40px 0 28px;border-bottom:2px solid var(--ink)}
+.kicker{font-size:13px;color:var(--ink-2);margin-bottom:10px}
+h1{font-size:clamp(26px,4.4vw,40px);max-width:22ch}
+.period{margin-top:14px;font-size:14px;color:var(--ink-2)}
+.headline{display:flex;flex-wrap:wrap;gap:28px 56px;margin-top:30px;align-items:flex-end}
+.headline .big{font-size:clamp(38px,8vw,68px);font-weight:800;line-height:.95;color:var(--parfum)}
+.headline .big.red{color:var(--alert)}
+.headline .cap{font-size:13px;color:var(--ink-2);margin-top:8px;max-width:26ch}
+
+/* sections */
+section{padding-top:46px}
+.shead{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:8px;margin-bottom:22px}
+.snum{font-size:13px;font-weight:700;color:var(--ink-3);min-width:20px}
+.shead h2{font-size:19px}
+.shead .sub{margin-left:auto;font-size:12.5px;color:var(--ink-3);text-align:right}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:16px 16px 14px;position:relative}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line)}
+.card.p::before{background:var(--parfum)} .card.l::before{background:var(--luna)}
+.card.a::before{background:var(--alert)} .card.g::before{background:var(--good)}
+.card .lbl{font-size:12.5px;color:var(--ink-2);margin-bottom:6px}
+.card .val{font-size:27px;font-weight:700;line-height:1.1}
+.card.p .val{color:var(--parfum)} .card.l .val{color:var(--luna)}
+.card.a .val{color:var(--alert)} .card.g .val{color:var(--good)}
+.card .foot{font-size:12px;color:var(--ink-3);margin-top:7px}
+
+/* generic panel */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.ptitle{font-size:13.5px;font-weight:600;margin-bottom:14px;color:var(--ink)}
+
+/* bars */
+.bar-row{display:grid;grid-template-columns:minmax(96px,1.35fr) 3fr auto;gap:10px;align-items:center;padding:5px 0;font-size:13px}
+.bar-row .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
+.track{background:var(--line-2);height:14px;border-radius:2px;overflow:hidden}
+.fill{height:100%;border-radius:2px}
+.bar-row .vl{font-variant-numeric:tabular-nums;font-weight:600;font-size:12.5px;white-space:nowrap}
+
+/* split share bar */
+.share{display:flex;height:30px;border-radius:3px;overflow:hidden;margin-bottom:12px}
+.share div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12.5px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--line-2);white-space:nowrap}
+th{font-size:11.5px;font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+td.num{font-variant-numeric:tabular-nums}
+tbody tr:hover{background:#F7F9FA}
+.scroll{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:3px;background:var(--panel)}
+tfoot td{font-weight:700;border-top:1px solid var(--ink);border-bottom:none;background:var(--panel)}
+.pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+.pill.w{background:var(--alert-soft);color:var(--alert)}
+.pill.m{background:var(--parfum-soft);color:var(--parfum)}
+.pill.o{background:var(--luna-soft);color:var(--luna)}
+
+/* tabs */
+.tabs{display:flex;gap:6px;margin-bottom:16px}
+.tab{border:1px solid var(--line);background:var(--panel);color:var(--ink-2);padding:6px 14px;border-radius:3px;font:inherit;font-size:13px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tab:focus-visible{outline:2px solid var(--luna);outline-offset:2px}
+
+svg{display:block;width:100%;height:auto}
+.axis{font-size:10.5px;fill:var(--ink-3)}
+.vlab{font-size:10.5px;font-weight:600}
+
+/* notes */
+.note{border-left:3px solid var(--alert);background:var(--alert-soft);padding:12px 14px;border-radius:0 3px 3px 0;font-size:13.5px;margin-top:14px}
+.note b{color:var(--alert)}
+.info{border-left:3px solid var(--luna);background:var(--luna-soft);padding:12px 14px;border-radius:0 3px 3px 0;font-size:13.5px;margin-top:14px}
+.findings{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.findings{grid-template-columns:1fr}}
+.finding{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:16px}
+.finding h3{font-size:14.5px;margin-bottom:7px}
+.finding p{margin:0;font-size:13.5px;color:var(--ink-2)}
+.finding .metric{font-size:22px;font-weight:700;margin-bottom:4px}
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}
+footer ul{margin:8px 0 0;padding-left:18px}
+@media(prefers-reduced-motion:no-preference){.fill{transition:width .5s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">PT MGI Lima Parfum · Dashboard persediaan, pembelian & penjualan</div>
+  <h1>Parfum &amp; aksesoris LUNA</h1>
+  <div class="period" id="period"></div>
+  <div class="headline">
+    <div>
+      <div class="big num" id="h-omzet"></div>
+      <div class="cap">Omzet penjualan parfum, <span id="h-fk"></span> faktur ke <span id="h-plg"></span> pelanggan</div>
+    </div>
+    <div>
+      <div class="big red num" id="h-piutang"></div>
+      <div class="cap">Belum tertagih — <span id="h-pct"></span> dari seluruh omzet parfum masih berupa piutang</div>
+    </div>
+  </div>
+</header>
+
+<section id="s1">
+  <div class="shead"><span class="snum">1</span><h2>Total omzet</h2><span class="sub" id="s1sub"></span></div>
+  <div class="cards" id="cards-omzet"></div>
+</section>
+
+<section id="s2">
+  <div class="shead"><span class="snum">2</span><h2>Total kuantiti</h2><span class="sub">Parfum dari faktur penjualan · LUNA dari faktur pembelian cabang</span></div>
+  <div class="cards" id="cards-qty"></div>
+</section>
+
+<section id="s3">
+  <div class="shead"><span class="snum">3</span><h2>Persentase penjualan</h2><span class="sub">Kontribusi produk, status penagihan, dan sebaran pelanggan</span></div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="ptitle">Kontribusi omzet per produk</div>
+      <div class="share" id="share-produk"></div>
+      <div class="legend" id="legend-produk"></div>
+      <div class="ptitle" style="margin-top:22px">Status penagihan</div>
+      <div class="share" id="share-tagih"></div>
+      <div class="legend" id="legend-tagih"></div>
+      <div class="ptitle" style="margin-top:22px">Struktur harga jual</div>
+      <div class="share" id="share-margin"></div>
+      <div class="legend" id="legend-margin"></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Pangsa omzet 10 pelanggan teratas</div>
+      <div id="bars-pelanggan"></div>
+      <div class="info" id="konsentrasi"></div>
+    </div>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="shead"><span class="snum">4</span><h2>Sisa stok persediaan</h2><span class="sub">Barang masuk ke cabang, periode berjalan</span></div>
+  <div class="note" id="stok-note"></div>
+  <div class="scroll" style="margin-top:14px">
+    <table id="tbl-stok">
+      <thead><tr><th>Cabang</th><th>Parfum masuk (pcs)</th><th>Nilai parfum</th><th>LUNA masuk (pcs)</th><th>Nilai LUNA</th><th>SKU LUNA</th></tr></thead>
+      <tbody></tbody><tfoot></tfoot>
+    </table>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="panel">
+      <div class="ptitle">Rekonsiliasi parfum: keluar dari pusat vs tercatat di cabang</div>
+      <div id="rekon"></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">10 SKU LUNA dengan nilai stok masuk terbesar</div>
+      <div id="bars-sku"></div>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="shead"><span class="snum">5</span><h2>Pergerakan per pekan</h2><span class="sub">Pekan Senin–Minggu</span></div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-t="parfum" aria-selected="true">Penjualan parfum</button>
+    <button class="tab" role="tab" data-t="luna" aria-selected="false">Pembelian LUNA</button>
+  </div>
+  <div class="panel">
+    <div class="ptitle" id="wk-title"></div>
+    <div id="wk-chart"></div>
+    <div class="scroll" style="max-height:none;border:none;margin-top:16px">
+      <table id="tbl-week"><thead><tr><th>Pekan</th><th>Nilai</th><th>Kuantiti</th><th>Baris faktur</th><th>Kontribusi</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <div class="shead"><span class="snum">6</span><h2>Rekap cabang belum lunas</h2><span class="sub" id="s6sub"></span></div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="ptitle">Umur piutang</div>
+      <div id="aging"></div>
+      <div class="note" id="aging-note"></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Nilai piutang per cabang (10 terbesar)</div>
+      <div id="bars-piutang"></div>
+    </div>
+  </div>
+  <div class="scroll" style="margin-top:14px">
+    <table id="tbl-piutang">
+      <thead><tr><th>Cabang / pelanggan</th><th>Faktur</th><th>Piutang</th><th>Umur tertua</th><th>Status</th></tr></thead>
+      <tbody></tbody><tfoot></tfoot>
+    </table>
+  </div>
+</section>
+
+<section id="s7">
+  <div class="shead"><span class="snum">7</span><h2>Analisa penjualan</h2><span class="sub">Temuan dari data yang tersedia</span></div>
+  <div class="findings" id="findings"></div>
+</section>
+
+<footer>
+  <div><strong>Sumber data</strong></div>
+  <ul id="sumber"></ul>
+  <div style="margin-top:10px"><strong>Catatan metodologi</strong></div>
+  <ul id="metode"></ul>
+</footer>
+
+</div>
+<script>
+const D = {
+ "penjualan": {
+  "omzet": 187830000,
+  "qty": 2556,
+  "faktur": 41,
+  "pelanggan": 31,
+  "hpp": 141605000,
+  "laba": 46225000,
+  "dari": "2026-08-14",
+  "sampai": "2026-09-09"
+ },
+ "produk": [
+  {
+   "kode": "100001",
+   "nama": "UMAIR ACTIVE CORE 30ML",
+   "qty": 5,
+   "omzet": 1625000,
+   "faktur": 1
+  },
+  {
+   "kode": "100010",
+   "nama": "UMAIR QUANTUM 30ML",
+   "qty": 2551,
+   "omzet": 186205000,
+   "faktur": 40
+  }
+ ],
+ "pelanggan": [
+  {
+   "nama": "MFLASH 07 JATIBENING",
+   "qty": 180,
+   "omzet": 13140000,
+   "fk": 2
+  },
+  {
+   "nama": "MFLASH 18 SAWANGAN",
+   "qty": 180,
+   "omzet": 13140000,
+   "fk": 2
+  },
+  {
+   "nama": "MFLASH 14 WARBONG",
+   "qty": 180,
+   "omzet": 13140000,
+   "fk": 2
+  },
+  {
+   "nama": "MFLASH 05 CIBUBUR",
+   "qty": 140,
+   "omzet": 11480000,
+   "fk": 2
+  },
+  {
+   "nama": "MFLASH 13 DRAMAGA",
+   "qty": 135,
+   "omzet": 9855000,
+   "fk": 1
+  },
+  {
+   "nama": "MFLASH 02 CONDET",
+   "qty": 135,
+   "omzet": 9855000,
+   "fk": 1
+  },
+  {
+   "nama": "MFLASH 01 KLENDER",
+   "qty": 110,
+   "omzet": 8030000,
+   "fk": 2
+  },
+  {
+   "nama": "MFLASH 06 BINTARA",
+   "qty": 110,
+   "omzet": 8030000,
+   "fk": 2
+  },
+  {
+   "nama": "MFLASH 04 CILANGKAP",
+   "qty": 100,
+   "omzet": 7300000,
+   "fk": 2
+  },
+  {
+   "nama": "RUMAH SCALE UP",
+   "qty": 91,
+   "omzet": 6643000,
+   "fk": 2
+  },
+  {
+   "nama": "MFLASH 08 JATIMULYA",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "MFLASH 09 JATIWARINGIN",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "MFLASH 10 CEGER",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "MFLASH 03 RADJIMAN",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "MADINAH MINERAL",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "MFLASH 16 CIKAMPEK",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "MFLASH 17 PEJATEN",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "MFLASH 12 CIBINONG",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "MFLASH 11 CINERE",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "MSOLUTION",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "MFLASH 15 TELUKJAMBE",
+   "qty": 90,
+   "omzet": 6570000,
+   "fk": 1
+  },
+  {
+   "nama": "RELOAD JATIMULYA",
+   "qty": 45,
+   "omzet": 3285000,
+   "fk": 1
+  },
+  {
+   "nama": "RELOAD BINTARA",
+   "qty": 45,
+   "omzet": 3285000,
+   "fk": 1
+  },
+  {
+   "nama": "RELOAD DRAMAGA",
+   "qty": 45,
+   "omzet": 3285000,
+   "fk": 1
+  },
+  {
+   "nama": "RELOAD CEGER, TANGKOT, DEPOK",
+   "qty": 45,
+   "omzet": 3285000,
+   "fk": 1
+  },
+  {
+   "nama": "PAK DENI",
+   "qty": 15,
+   "omzet": 1095000,
+   "fk": 2
+  },
+  {
+   "nama": "USTAD MARSONO",
+   "qty": 6,
+   "omzet": 420000,
+   "fk": 2
+  },
+  {
+   "nama": "FENIH",
+   "qty": 1,
+   "omzet": 73000,
+   "fk": 1
+  },
+  {
+   "nama": "BANG IQBAL",
+   "qty": 1,
+   "omzet": 73000,
+   "fk": 1
+  },
+  {
+   "nama": "PAK ALKY",
+   "qty": 1,
+   "omzet": 73000,
+   "fk": 1
+  },
+  {
+   "nama": "ZULVA",
+   "qty": 1,
+   "omzet": 73000,
+   "fk": 1
+  }
+ ],
+ "piutang": {
+  "total": 186461000,
+  "faktur": 35,
+  "pelanggan": 27,
+  "maks_umur": 27,
+  "rata_umur": 17.6
+ },
+ "aging": [
+  {
+   "label": "0\u201314 hari",
+   "n": 11,
+   "nilai": 52925000
+  },
+  {
+   "label": "15\u201321 hari",
+   "n": 11,
+   "nilai": 62561000
+  },
+  {
+   "label": "22\u201330 hari",
+   "n": 13,
+   "nilai": 70975000
+  }
+ ],
+ "piutang_cabang": [
+  {
+   "nama": "MFLASH 07 JATIBENING",
+   "nilai": 13140000,
+   "fk": 2,
+   "umur": 20
+  },
+  {
+   "nama": "MFLASH 18 SAWANGAN",
+   "nilai": 13140000,
+   "fk": 2,
+   "umur": 22
+  },
+  {
+   "nama": "MFLASH 14 WARBONG",
+   "nilai": 13140000,
+   "fk": 2,
+   "umur": 20
+  },
+  {
+   "nama": "MFLASH 05 CIBUBUR",
+   "nilai": 11480000,
+   "fk": 2,
+   "umur": 23
+  },
+  {
+   "nama": "MFLASH 13 DRAMAGA",
+   "nilai": 9855000,
+   "fk": 1,
+   "umur": 21
+  },
+  {
+   "nama": "MFLASH 02 CONDET",
+   "nilai": 9855000,
+   "fk": 1,
+   "umur": 22
+  },
+  {
+   "nama": "MFLASH 06 BINTARA",
+   "nilai": 8030000,
+   "fk": 2,
+   "umur": 27
+  },
+  {
+   "nama": "MFLASH 01 KLENDER",
+   "nilai": 8030000,
+   "fk": 2,
+   "umur": 23
+  },
+  {
+   "nama": "MFLASH 04 CILANGKAP",
+   "nilai": 7300000,
+   "fk": 2,
+   "umur": 24
+  },
+  {
+   "nama": "RUMAH SCALE UP",
+   "nilai": 6643000,
+   "fk": 2,
+   "umur": 16
+  },
+  {
+   "nama": "MADINAH MINERAL",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 14
+  },
+  {
+   "nama": "MFLASH 10 CEGER",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 20
+  },
+  {
+   "nama": "MFLASH 09 JATIWARINGIN",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 20
+  },
+  {
+   "nama": "MFLASH 08 JATIMULYA",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 22
+  },
+  {
+   "nama": "MFLASH 03 RADJIMAN",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 20
+  },
+  {
+   "nama": "MFLASH 11 CINERE",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 22
+  },
+  {
+   "nama": "MFLASH 15 TELUKJAMBE",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 20
+  },
+  {
+   "nama": "MFLASH 16 CIKAMPEK",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 20
+  },
+  {
+   "nama": "MFLASH 12 CIBINONG",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 22
+  },
+  {
+   "nama": "MFLASH 17 PEJATEN",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 22
+  },
+  {
+   "nama": "MSOLUTION",
+   "nilai": 6570000,
+   "fk": 1,
+   "umur": 13
+  },
+  {
+   "nama": "RELOAD CEGER, TANGKOT, DEPOK",
+   "nilai": 3285000,
+   "fk": 1,
+   "umur": 11
+  },
+  {
+   "nama": "RELOAD BINTARA",
+   "nilai": 3285000,
+   "fk": 1,
+   "umur": 11
+  },
+  {
+   "nama": "RELOAD JATIMULYA",
+   "nilai": 3285000,
+   "fk": 1,
+   "umur": 11
+  },
+  {
+   "nama": "RELOAD DRAMAGA",
+   "nilai": 3285000,
+   "fk": 1,
+   "umur": 11
+  },
+  {
+   "nama": "USTAD MARSONO",
+   "nilai": 365000,
+   "fk": 1,
+   "umur": 13
+  },
+  {
+   "nama": "PAK ALKY",
+   "nilai": 73000,
+   "fk": 1,
+   "umur": 20
+  }
+ ],
+ "pekan_parfum": [
+  {
+   "awal": "2026-08-10",
+   "akhir": "2026-08-16",
+   "nilai": 1460000,
+   "qty": 20,
+   "n": 1
+  },
+  {
+   "awal": "2026-08-17",
+   "akhir": "2026-08-23",
+   "nilai": 133171000,
+   "qty": 1807,
+   "n": 25
+  },
+  {
+   "awal": "2026-08-24",
+   "akhir": "2026-08-30",
+   "nilai": 33343000,
+   "qty": 457,
+   "n": 10
+  },
+  {
+   "awal": "2026-08-31",
+   "akhir": "2026-09-06",
+   "nilai": 146000,
+   "qty": 2,
+   "n": 2
+  },
+  {
+   "awal": "2026-09-07",
+   "akhir": "2026-09-13",
+   "nilai": 19710000,
+   "qty": 270,
+   "n": 3
+  }
+ ],
+ "pekan_luna": [
+  {
+   "awal": "2026-06-29",
+   "akhir": "2026-07-05",
+   "nilai": 1470000,
+   "qty": 15,
+   "n": 2
+  },
+  {
+   "awal": "2026-07-06",
+   "akhir": "2026-07-12",
+   "nilai": 1963072,
+   "qty": 110,
+   "n": 3
+  },
+  {
+   "awal": "2026-07-13",
+   "akhir": "2026-07-19",
+   "nilai": 5527500,
+   "qty": 633,
+   "n": 10
+  },
+  {
+   "awal": "2026-07-20",
+   "akhir": "2026-07-26",
+   "nilai": 2320500,
+   "qty": 217,
+   "n": 2
+  },
+  {
+   "awal": "2026-07-27",
+   "akhir": "2026-08-02",
+   "nilai": 26133968,
+   "qty": 1499,
+   "n": 9
+  },
+  {
+   "awal": "2026-08-03",
+   "akhir": "2026-08-09",
+   "nilai": 13592400,
+   "qty": 503,
+   "n": 34
+  },
+  {
+   "awal": "2026-08-10",
+   "akhir": "2026-08-16",
+   "nilai": 10509708,
+   "qty": 356,
+   "n": 28
+  },
+  {
+   "awal": "2026-08-17",
+   "akhir": "2026-08-23",
+   "nilai": 261491500,
+   "qty": 15145,
+   "n": 176
+  },
+  {
+   "awal": "2026-08-24",
+   "akhir": "2026-08-30",
+   "nilai": 33303000,
+   "qty": 1890,
+   "n": 22
+  },
+  {
+   "awal": "2026-08-31",
+   "akhir": "2026-09-06",
+   "nilai": 3129000,
+   "qty": 86,
+   "n": 5
+  },
+  {
+   "awal": "2026-09-07",
+   "akhir": "2026-09-13",
+   "nilai": 3600075,
+   "qty": 205,
+   "n": 2
+  }
+ ],
+ "luna": {
+  "nilai": 363040723,
+  "qty": 20659,
+  "sku": 88,
+  "cabang": 18,
+  "baris": 293,
+  "dari": "2026-07-03",
+  "sampai": "2026-09-09"
+ },
+ "luna_cabang": [
+  {
+   "nama": "CIBUBUR",
+   "qty": 2088,
+   "nilai": 37677496,
+   "sku": 16
+  },
+  {
+   "nama": "CILANGKAP",
+   "qty": 1494,
+   "nilai": 23935000,
+   "sku": 23
+  },
+  {
+   "nama": "DRAMAGA",
+   "qty": 1214,
+   "nilai": 22961575,
+   "sku": 19
+  },
+  {
+   "nama": "CIKAMPEK",
+   "qty": 1128,
+   "nilai": 22387200,
+   "sku": 22
+  },
+  {
+   "nama": "RADJIMAN",
+   "qty": 1309,
+   "nilai": 21726752,
+   "sku": 12
+  },
+  {
+   "nama": "JATIMULYA",
+   "qty": 1234,
+   "nilai": 20037300,
+   "sku": 16
+  },
+  {
+   "nama": "BINTARA",
+   "qty": 989,
+   "nilai": 19945100,
+   "sku": 16
+  },
+  {
+   "nama": "CINERE",
+   "qty": 1164,
+   "nilai": 19174500,
+   "sku": 15
+  },
+  {
+   "nama": "CONDET",
+   "qty": 982,
+   "nilai": 19164000,
+   "sku": 18
+  },
+  {
+   "nama": "JATIWARINGIN",
+   "qty": 1163,
+   "nilai": 19021500,
+   "sku": 14
+  },
+  {
+   "nama": "CIBINONG",
+   "qty": 1063,
+   "nilai": 18600300,
+   "sku": 21
+  },
+  {
+   "nama": "CEGER",
+   "qty": 1018,
+   "nilai": 18203100,
+   "sku": 15
+  },
+  {
+   "nama": "JATIBENING",
+   "qty": 1052,
+   "nilai": 17654000,
+   "sku": 13
+  },
+  {
+   "nama": "WARBONG",
+   "qty": 979,
+   "nilai": 17369500,
+   "sku": 15
+  },
+  {
+   "nama": "SAWANGAN",
+   "qty": 945,
+   "nilai": 16651500,
+   "sku": 11
+  },
+  {
+   "nama": "PEJATEN",
+   "qty": 945,
+   "nilai": 16651500,
+   "sku": 11
+  },
+  {
+   "nama": "TELUKJAMBE",
+   "qty": 945,
+   "nilai": 16651500,
+   "sku": 11
+  },
+  {
+   "nama": "KLENDER",
+   "qty": 947,
+   "nilai": 15228900,
+   "sku": 11
+  }
+ ],
+ "luna_sku": [
+  {
+   "nama": "LUNA CHARGING CABLE TYPE-C WITH DATA CJ-4P",
+   "qty": 11253,
+   "nilai": 94525200
+  },
+  {
+   "nama": "LUNA DATA CABLE LIGHTNING CB-2E",
+   "qty": 2478,
+   "nilai": 43440600
+  },
+  {
+   "nama": "LUNA EARPHONE JACK 3,5MM EJ-4V",
+   "qty": 1554,
+   "nilai": 30303000
+  },
+  {
+   "nama": "LUNA POWERBANK 10000MAH PD25W PJ-4D",
+   "qty": 144,
+   "nilai": 27000000
+  },
+  {
+   "nama": "LUNA OWS SPORT BLUETOOTH TJ-4Q",
+   "qty": 126,
+   "nilai": 24318000
+  },
+  {
+   "nama": "LUNA ADAPTER CABLE GAN45W TYPE-C AJ5W-CC KIT",
+   "qty": 183,
+   "nilai": 21124000
+  },
+  {
+   "nama": "LUNA TWS PEGASUS BLUETOOTH TJ-4F",
+   "qty": 144,
+   "nilai": 13536000
+  },
+  {
+   "nama": "LUNA SPORT NECKBAND FOREST BLUETOOTH L2",
+   "qty": 119,
+   "nilai": 11186000
+  },
+  {
+   "nama": "LUNA HEADPHONE ZENITH BLUETOOTH HJ-4K",
+   "qty": 54,
+   "nilai": 7560000
+  },
+  {
+   "nama": "LUNA USB CABLE CB-2EL",
+   "qty": 357,
+   "nilai": 6890100
+  },
+  {
+   "nama": "LUNA DATA CABLE TYPE-C CB-2E",
+   "qty": 819,
+   "nilai": 6703200
+  },
+  {
+   "nama": "LUNA HEADPHONE BHETRIX BLUETOOTH HJ-4K",
+   "qty": 54,
+   "nilai": 6480000
+  }
+ ],
+ "parfum_beli": {
+  "qty": 1805,
+  "nilai": 130445000,
+  "cabang": 18,
+  "baris": 21
+ },
+ "parfum_cabang": [
+  {
+   "nama": "CONDET",
+   "qty": 135,
+   "nilai": 9855000
+  },
+  {
+   "nama": "CIBUBUR",
+   "qty": 135,
+   "nilai": 10125000
+  },
+  {
+   "nama": "DRAMAGA",
+   "qty": 135,
+   "nilai": 9855000
+  },
+  {
+   "nama": "BINTARA",
+   "qty": 110,
+   "nilai": 8030000
+  },
+  {
+   "nama": "KLENDER",
+   "qty": 110,
+   "nilai": 7970000
+  },
+  {
+   "nama": "CILANGKAP",
+   "qty": 100,
+   "nilai": 5680000
+  },
+  {
+   "nama": "CEGER",
+   "qty": 90,
+   "nilai": 6570000
+  },
+  {
+   "nama": "CIKAMPEK",
+   "qty": 90,
+   "nilai": 6570000
+  },
+  {
+   "nama": "CINERE",
+   "qty": 90,
+   "nilai": 6570000
+  },
+  {
+   "nama": "CIBINONG",
+   "qty": 90,
+   "nilai": 6570000
+  },
+  {
+   "nama": "JATIBENING",
+   "qty": 90,
+   "nilai": 6570000
+  },
+  {
+   "nama": "JATIMULYA",
+   "qty": 90,
+   "nilai": 6750000
+  },
+  {
+   "nama": "JATIWARINGIN",
+   "qty": 90,
+   "nilai": 6570000
+  },
+  {
+   "nama": "PEJATEN",
+   "qty": 90,
+   "nilai": 6570000
+  },
+  {
+   "nama": "RADJIMAN",
+   "qty": 90,
+   "nilai": 6570000
+  },
+  {
+   "nama": "SAWANGAN",
+   "qty": 90,
+   "nilai": 6480000
+  },
+  {
+   "nama": "TELUKJAMBE",
+   "qty": 90,
+   "nilai": 6570000
+  },
+  {
+   "nama": "WARBONG",
+   "qty": 90,
+   "nilai": 6570000
+  }
+ ],
+ "pembelian_total": {
+  "baris": 16009,
+  "nilai": 11214310954,
+  "dari": "2026-07-01",
+  "sampai": "2026-09-09"
+ }
+};
+const rp = n => "Rp " + n.toLocaleString("id-ID");
+const rpj = n => n>=1e9 ? "Rp "+(n/1e9).toLocaleString("id-ID",{maximumFractionDigits:2})+" M"
+              : n>=1e6 ? "Rp "+(n/1e6).toLocaleString("id-ID",{maximumFractionDigits:1})+" jt"
+              : rp(n);
+const nb = n => n.toLocaleString("id-ID");
+const pc = (a,b) => (a/b*100).toLocaleString("id-ID",{maximumFractionDigits:1})+"%";
+const tgl = s => new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"});
+const tglp = s => new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"numeric",month:"short"});
+const $ = q => document.querySelector(q);
+
+const P=D.penjualan, PI=D.piutang, L=D.luna, PB=D.parfum_beli;
+const lunasNilai = P.omzet - PI.total;
+
+/* hero */
+$("#period").textContent = "Penjualan parfum "+tgl(P.dari)+" – "+tgl(P.sampai)+"  ·  Pembelian cabang "+tgl(D.pembelian_total.dari)+" – "+tgl(D.pembelian_total.sampai);
+$("#h-omzet").textContent = rp(P.omzet);
+$("#h-fk").textContent = P.faktur; $("#h-plg").textContent = P.pelanggan;
+$("#h-piutang").textContent = rp(PI.total);
+$("#h-pct").textContent = pc(PI.total,P.omzet);
+
+/* cards */
+const card=(c,l,v,f)=>`<div class="card ${c}"><div class="lbl">${l}</div><div class="val num">${v}</div><div class="foot">${f}</div></div>`;
+$("#s1sub").textContent = P.faktur+" faktur penjualan · "+D.pembelian_total.baris.toLocaleString("id-ID")+" baris faktur pembelian";
+$("#cards-omzet").innerHTML =
+  card("p","Omzet parfum",rp(P.omzet),P.faktur+" faktur · "+P.pelanggan+" pelanggan")+
+  card("g","Laba kotor parfum",rp(P.laba),"Margin "+pc(P.laba,P.omzet)+" atas omzet")+
+  card("l","Nilai stok masuk LUNA",rp(L.nilai),L.baris+" baris · "+L.cabang+" cabang")+
+  card("a","Piutang belum lunas",rp(PI.total),PI.faktur+" faktur · "+PI.pelanggan+" pelanggan");
+$("#cards-qty").innerHTML =
+  card("p","Kuantiti parfum terjual",nb(P.qty)+" pcs","Rata-rata "+nb(Math.round(P.qty/P.faktur))+" pcs per faktur")+
+  card("l","Kuantiti LUNA masuk",nb(L.qty)+" pcs",L.sku+" SKU aktif")+
+  card("p","Parfum tercatat di cabang",nb(PB.qty)+" pcs",PB.cabang+" cabang mencatat pembelian")+
+  card("g","Harga jual rata-rata parfum",rp(Math.round(P.omzet/P.qty)),"HPP rata-rata "+rp(Math.round(P.hpp/P.qty))+" per pcs");
+
+/* 3. share bars */
+function shareBar(el,legEl,parts){
+  const tot=parts.reduce((a,p)=>a+p.v,0);
+  el.innerHTML=parts.map(p=>{
+    const w=p.v/tot*100;
+    return `<div style="width:${w}%;background:${p.c}">${w>11?pc(p.v,tot):""}</div>`;
+  }).join("");
+  legEl.innerHTML=parts.map(p=>`<span><i style="background:${p.c}"></i>${p.n} — ${rpj(p.v)} (${pc(p.v,tot)})</span>`).join("");
+}
+shareBar($("#share-produk"),$("#legend-produk"),
+  D.produk.slice().sort((a,b)=>b.omzet-a.omzet).map((p,i)=>({n:p.nama,v:p.omzet,c:i?"#D3B87E":"#A8701F"})));
+shareBar($("#share-tagih"),$("#legend-tagih"),
+  [{n:"Sudah lunas",v:lunasNilai,c:"#2C6B4A"},{n:"Belum lunas",v:PI.total,c:"#9E3229"}]);
+shareBar($("#share-margin"),$("#legend-margin"),
+  [{n:"Harga pokok (HPP)",v:P.hpp,c:"#7C8B96"},{n:"Laba kotor",v:P.laba,c:"#2C6B4A"}]);
+
+/* bars helper */
+function bars(el,rows,color,fmt){
+  const mx=Math.max(...rows.map(r=>r.v));
+  el.innerHTML=rows.map(r=>`<div class="bar-row"><span class="nm" title="${r.n}">${r.n}</span>
+    <span class="track"><span class="fill" style="width:${r.v/mx*100}%;background:${color}"></span></span>
+    <span class="vl">${fmt(r.v)}</span></div>`).join("");
+}
+bars($("#bars-pelanggan"),D.pelanggan.slice(0,10).map(p=>({n:p.nama,v:p.omzet})),"#A8701F",rpj);
+const top5=D.pelanggan.slice(0,5).reduce((a,p)=>a+p.omzet,0);
+$("#konsentrasi").innerHTML=`5 pelanggan teratas menyumbang <b>${pc(top5,P.omzet)}</b> omzet parfum. Sisanya tersebar di ${P.pelanggan-5} pelanggan lain, sehingga risiko konsentrasi masih rendah.`;
+
+/* 4. stok */
+const lunaMap=Object.fromEntries(D.luna_cabang.map(c=>[c.nama,c]));
+const parMap=Object.fromEntries(D.parfum_cabang.map(c=>[c.nama,c]));
+const cabang=[...new Set([...D.luna_cabang.map(c=>c.nama),...D.parfum_cabang.map(c=>c.nama)])]
+  .sort((a,b)=>((lunaMap[b]?.nilai||0)+(parMap[b]?.nilai||0))-((lunaMap[a]?.nilai||0)+(parMap[a]?.nilai||0)));
+$("#tbl-stok").querySelector("tbody").innerHTML=cabang.map(c=>{
+  const p=parMap[c], l=lunaMap[c];
+  return `<tr><td>${c}</td><td class="num">${p?nb(p.qty):"—"}</td><td class="num">${p?rp(p.nilai):"—"}</td>
+    <td class="num">${l?nb(l.qty):"—"}</td><td class="num">${l?rp(l.nilai):"—"}</td><td class="num">${l?l.sku:"—"}</td></tr>`;
+}).join("");
+$("#tbl-stok").querySelector("tfoot").innerHTML=`<tr><td>Total ${cabang.length} cabang</td>
+  <td class="num">${nb(PB.qty)}</td><td class="num">${rp(PB.nilai)}</td>
+  <td class="num">${nb(L.qty)}</td><td class="num">${rp(L.nilai)}</td><td class="num">${L.sku}</td></tr>`;
+$("#stok-note").innerHTML=`<b>Angka di bawah adalah stok masuk, bukan sisa stok.</b> Tiga berkas yang tersedia hanya merekam barang <em>masuk</em> ke cabang (faktur pembelian) dan barang keluar dari pusat (faktur penjualan). Untuk menghitung sisa stok yang sebenarnya masih diperlukan: <b>stok awal / hasil opname per cabang</b> dan <b>penjualan cabang ke konsumen akhir</b>. Begitu dua data itu tersedia, kolom di tabel ini langsung bisa dikurangi menjadi sisa stok riil.`;
+const selisih=P.qty-PB.qty;
+$("#rekon").innerHTML=
+  `<div class="bar-row"><span class="nm">Keluar dari pusat</span><span class="track"><span class="fill" style="width:100%;background:#A8701F"></span></span><span class="vl">${nb(P.qty)} pcs</span></div>`+
+  `<div class="bar-row"><span class="nm">Tercatat di cabang</span><span class="track"><span class="fill" style="width:${PB.qty/P.qty*100}%;background:#D3B87E"></span></span><span class="vl">${nb(PB.qty)} pcs</span></div>`+
+  `<div class="bar-row"><span class="nm">Selisih</span><span class="track"><span class="fill" style="width:${selisih/P.qty*100}%;background:#9E3229"></span></span><span class="vl">${nb(selisih)} pcs</span></div>`+
+  `<p style="font-size:13px;color:var(--ink-2);margin:12px 0 0">Selisih ${pc(selisih,P.qty)} sebagian wajar karena sebagian pembeli bukan cabang (RELOAD, perorangan, mitra) sehingga tidak muncul di berkas pembelian cabang. Sisanya perlu dicek: faktur pembelian cabang yang belum diinput.</p>`;
+bars($("#bars-sku"),D.luna_sku.slice(0,10).map(s=>({n:s.nama.replace(/^LUNA /,""),v:s.nilai})),"#2C6A8C",rpj);
+
+/* 5. weekly chart */
+function chartWeek(rows,color){
+  const W=760,H=250,ml=54,mr=12,mt=14,mb=46;
+  const mx=Math.max(...rows.map(r=>r.nilai));
+  const iw=W-ml-mr, bw=iw/rows.length;
+  const y=v=>mt+(H-mt-mb)*(1-v/mx);
+  let g="";
+  for(let i=0;i<=4;i++){const v=mx*i/4, yy=y(v);
+    g+=`<line x1="${ml}" x2="${W-mr}" y1="${yy}" y2="${yy}" stroke="#E8EDF0"/>
+        <text class="axis" x="${ml-7}" y="${yy+3.5}" text-anchor="end">${v?rpj(v).replace("Rp ",""):"0"}</text>`;}
+  rows.forEach((r,i)=>{
+    const x=ml+i*bw+bw*0.18, w=bw*0.64, yy=y(r.nilai), h=H-mb-yy;
+    g+=`<rect x="${x}" y="${yy}" width="${w}" height="${Math.max(h,1)}" fill="${color}" rx="2"/>
+        <text class="vlab" x="${x+w/2}" y="${yy-5}" text-anchor="middle" fill="${color}">${rpj(r.nilai).replace("Rp ","")}</text>
+        <text class="axis" x="${x+w/2}" y="${H-mb+15}" text-anchor="middle">${tglp(r.awal)}</text>
+        <text class="axis" x="${x+w/2}" y="${H-mb+28}" text-anchor="middle">${nb(r.qty)} pcs</text>`;
+  });
+  g+=`<line x1="${ml}" x2="${W-mr}" y1="${H-mb}" y2="${H-mb}" stroke="#16232E"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Grafik batang per pekan">${g}</svg>`;
+}
+function renderWeek(t){
+  const rows = t==="parfum"?D.pekan_parfum:D.pekan_luna;
+  const color = t==="parfum"?"#A8701F":"#2C6A8C";
+  const tot = rows.reduce((a,r)=>a+r.nilai,0);
+  $("#wk-title").textContent = t==="parfum"
+    ? "Nilai penjualan parfum per pekan (label bawah: kuantiti)"
+    : "Nilai pembelian aksesoris LUNA per pekan (label bawah: kuantiti)";
+  $("#wk-chart").innerHTML = chartWeek(rows,color);
+  $("#tbl-week").querySelector("tbody").innerHTML = rows.map(r=>
+    `<tr><td>${tglp(r.awal)} – ${tglp(r.akhir)}</td><td class="num">${rp(r.nilai)}</td>
+     <td class="num">${nb(r.qty)}</td><td class="num">${r.n}</td><td class="num">${pc(r.nilai,tot)}</td></tr>`).join("");
+}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));
+  renderWeek(b.dataset.t);
+}));
+renderWeek("parfum");
+
+/* 6. piutang */
+$("#s6sub").textContent = PI.faktur+" faktur terbuka · rata-rata tertimbang "+PI.rata_umur+" hari";
+const agTot=D.aging.reduce((a,x)=>a+x.nilai,0);
+const agCol={"0–14 hari":"#2C6B4A","15–21 hari":"#A8701F","22–30 hari":"#C25A2E",">30 hari":"#9E3229"};
+$("#aging").innerHTML=D.aging.map(a=>`<div class="bar-row"><span class="nm">${a.label} (${a.n} faktur)</span>
+  <span class="track"><span class="fill" style="width:${a.nilai/agTot*100}%;background:${agCol[a.label]}"></span></span>
+  <span class="vl">${rpj(a.nilai)}</span></div>`).join("");
+const tua=D.aging.filter(a=>a.label==="22–30 hari"||a.label===">30 hari").reduce((a,x)=>a+x.nilai,0);
+$("#aging-note").innerHTML=`<b>${pc(tua,agTot)}</b> dari nilai piutang sudah berumur di atas 21 hari (${rp(tua)}). Faktur tertua ${PI.maks_umur} hari. Belum ada faktur yang melewati 30 hari, jadi seluruh piutang masih dalam rentang yang bisa ditagih tanpa penyisihan.`;
+bars($("#bars-piutang"),D.piutang_cabang.slice(0,10).map(c=>({n:c.nama,v:c.nilai})),"#9E3229",rpj);
+$("#tbl-piutang").querySelector("tbody").innerHTML=D.piutang_cabang.map(c=>{
+  const cls=c.umur>21?"w":c.umur>14?"m":"o";
+  const lbl=c.umur>21?"Segera tagih":c.umur>14?"Pantau":"Normal";
+  return `<tr><td>${c.nama}</td><td class="num">${c.fk}</td><td class="num">${rp(c.nilai)}</td>
+    <td class="num">${c.umur} hari</td><td><span class="pill ${cls}">${lbl}</span></td></tr>`;}).join("");
+$("#tbl-piutang").querySelector("tfoot").innerHTML=`<tr><td>Total ${PI.pelanggan} pelanggan</td>
+  <td class="num">${PI.faktur}</td><td class="num">${rp(PI.total)}</td><td class="num">${PI.maks_umur} hari</td><td></td></tr>`;
+
+/* 7. analisa */
+const puncak=D.pekan_parfum.slice().sort((a,b)=>b.nilai-a.nilai)[0];
+const puncakShare=pc(puncak.nilai,P.omzet);
+const q=D.produk.slice().sort((a,b)=>b.omzet-a.omzet);
+const findings=[
+ {m:pc(PI.total,P.omzet),h:"Penjualan hampir seluruhnya belum dibayar",
+  p:`Dari omzet ${rp(P.omzet)}, baru ${rp(lunasNilai)} yang lunas. Model penjualan ke cabang berjalan penuh dengan tempo, jadi arus kas tertahan di ${PI.faktur} faktur. Prioritas pertama adalah menagih 5 pelanggan terbesar yang menahan ${rpj(D.piutang_cabang.slice(0,5).reduce((a,c)=>a+c.nilai,0))}.`},
+ {m:pc(q[0].omzet,P.omzet),h:"Omzet bertumpu pada satu SKU",
+  p:`${q[0].nama} menyumbang ${pc(q[0].omzet,P.omzet)} omzet (${nb(q[0].qty)} pcs). ${q[1].nama} baru terjual ${nb(q[1].qty)} pcs pada ${q[1].faktur} faktur. Portofolio parfum praktis produk tunggal, sehingga penurunan permintaan satu varian langsung memukul seluruh lini.`},
+ {m:puncakShare,h:"Penjualan menumpuk di satu pekan",
+  p:`Pekan ${tglp(puncak.awal)}–${tglp(puncak.akhir)} menyerap ${puncakShare} omzet (${nb(puncak.qty)} pcs, ${puncak.n} faktur). Pola ini menunjukkan dorongan distribusi serentak ke cabang, bukan permintaan yang mengalir merata. Pekan-pekan berikutnya turun tajam.`},
+ {m:pc(P.laba,P.omzet),h:"Margin kotor stabil di kisaran seperempat",
+  p:`Harga jual rata-rata ${rp(Math.round(P.omzet/P.qty))} per pcs dengan HPP ${rp(Math.round(P.hpp/P.qty))}, menghasilkan laba kotor ${rp(P.laba)}. Margin ini masih harus menutup biaya distribusi dan risiko piutang yang saat ini menahan hampir seluruh omzet.`},
+ {m:nb(L.qty)+" pcs",h:"Stok LUNA masuk jauh melampaui parfum",
+  p:`Aksesoris LUNA masuk ${nb(L.qty)} pcs senilai ${rp(L.nilai)} ke ${L.cabang} cabang, dengan ${L.sku} SKU. Nilainya ${(L.nilai/P.omzet).toLocaleString("id-ID",{maximumFractionDigits:1})}× omzet parfum, sehingga sebagian besar modal persediaan sebenarnya tertanam di lini aksesoris, bukan parfum.`},
+ {m:nb(selisih)+" pcs",h:"Selisih pencatatan pusat dan cabang",
+  p:`Pusat memfakturkan ${nb(P.qty)} pcs parfum, cabang mencatat ${nb(PB.qty)} pcs. Sebagian selisih wajar karena pembeli non-cabang, namun angka ini perlu ditutup lewat rekonsiliasi faktur agar laporan persediaan bisa dipercaya.`}
+];
+$("#findings").innerHTML=findings.map(f=>`<div class="finding"><div class="metric num">${f.m}</div><h3>${f.h}</h3><p>${f.p}</p></div>`).join("");
+
+/* footer */
+$("#sumber").innerHTML=[
+ `<code>rincian_faktur_penjualan_ptmgilimaparfum</code> — ${P.faktur} faktur penjualan parfum, ${tgl(P.dari)} – ${tgl(P.sampai)}`,
+ `<code>faktur_belum_lunas_ptmgilimaparfum</code> — ${PI.faktur} faktur piutang terbuka`,
+ `<code>Faktur_Pembelian</code> — ${nb(D.pembelian_total.baris)} baris pembelian cabang, ${tgl(D.pembelian_total.dari)} – ${tgl(D.pembelian_total.sampai)}, total ${rp(D.pembelian_total.nilai)} seluruh kategori`
+].map(s=>`<li>${s}</li>`).join("");
+$("#metode").innerHTML=[
+ `Aksesoris LUNA didefinisikan sebagai baris pembelian dengan pemasok LUNA atau nama barang berawalan LUNA, terbatas pada kategori aksesoris dan sparepart. Satu baris "SMART BOARD 86 INCH" senilai Rp 27.000.000 dari pemasok LUNA dikeluarkan karena bukan aksesoris.`,
+ `Berkas piutang berisi satu pemisah halaman: nomor faktur SI.2026.08.00022 terpotong menjadi dua baris dan sudah disambung kembali, baris header ganda dibuang.`,
+ `Pekan dihitung Senin–Minggu. Kategori parfum pada faktur pembelian mencakup entri yang salah kategori (tercatat sebagai AKSESORIS) namun nama barangnya parfum.`,
+ `Tidak ada data stok awal, opname, maupun penjualan cabang ke konsumen akhir, sehingga sisa stok riil belum dapat dihitung.`
+].map(s=>`<li>${s}</li>`).join("");
+</script>
+</body>
+</html>
