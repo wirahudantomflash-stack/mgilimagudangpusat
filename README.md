@@ -26,9 +26,25 @@ Main file path: `streamlit_app.py`
 
 ## Memperbarui data
 
-Ganti isi folder `data/`, nama berkas boleh tetap. Loader menerima `.csv`,
-`.csv.gz`, maupun `.xlsx`. Atau nyalakan **Unggah berkas sendiri** di panel kiri
-untuk memakai berkas tanpa menyentuh repo.
+Taruh berkas ekspor terbaru di folder `data/`. Nama berkas tidak perlu diganti —
+pemuat mengenali berkas dari kata kunci di dalam namanya:
+
+| Data | Nama berkas harus memuat |
+| --- | --- |
+| Penjualan | `penjualan` |
+| Piutang | `belum_lunas` atau `piutang` |
+| Pembelian | `pembelian` |
+
+Format yang diterima: `.csv.gz`, `.csv`, `.xlsx`. Berkas `.xlsx` mentah dari
+sistem bisa dipakai langsung — baris header yang terulang dibuang sendiri,
+nomor faktur yang terpotong pemisah halaman disambung, tanggal tulisan
+Indonesia seperti `01 Agu 2026` dikenali, dan berkas pembelian disaring
+otomatis ke barang parfum.
+
+Kalau ada beberapa berkas yang cocok untuk satu jenis data, yang paling baru
+diubah akan dipakai, jadi ekspor lama boleh dibiarkan. Berkas juga boleh ditaruh
+di akar repo kalau folder `data/` tidak dipakai. Atau nyalakan **Unggah berkas
+sendiri** di panel kiri untuk memakai berkas tanpa menyentuh repo.
 
 ## Aturan data
 

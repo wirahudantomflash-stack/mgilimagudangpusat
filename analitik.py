@@ -110,16 +110,53 @@ def segmen(pelanggan: str) -> str:
     return "Perorangan & lainnya"
 
 
-def _cari(folder: Path, *pola: str) -> Path | None:
-    for p in pola:
-        hasil = sorted(folder.glob(p))
-        if hasil:
-            return hasil[0]
-    return None
+# Kata kunci pengenal berkas. Dicocokkan sebagai bagian mana pun dari nama
+# berkas, bukan awalannya, supaya nama ekspor bawaan sistem langsung dikenali
+# tanpa perlu diganti namanya lebih dulu.
+KUNCI = {
+    "penjualan": ("rincian_faktur_penjualan", "faktur_penjualan", "penjualan"),
+    "piutang": ("belum_lunas", "piutang"),
+    "pembelian": ("faktur_pembelian", "pembelian"),
+}
+EKSTENSI = (".csv.gz", ".csv", ".xlsx", ".xls")
+
+
+def _kandidat(folder: Path) -> list[Path]:
+    if not folder.is_dir():
+        return []
+    return [p for p in folder.iterdir()
+            if p.is_file() and p.name.lower().endswith(EKSTENSI)]
+
+
+def _cari(folder: Path, jenis: str) -> Path | None:
+    """Cari berkas untuk satu jenis data di folder data/ maupun folder aplikasi.
+
+    Pencocokan memakai kata kunci di mana pun pada nama berkas dan tidak
+    membedakan huruf besar-kecil. Kalau ada lebih dari satu yang cocok, dipakai
+    yang paling baru diubah, supaya ekspor terbaru menang tanpa perlu menghapus
+    berkas lama.
+    """
+    urut = KUNCI[jenis]
+    cocok = []
+    for berkas in _kandidat(folder) + _kandidat(folder.parent):
+        nama = berkas.name.lower()
+        # "pembelian" jangan sampai menyambar "rincian_faktur_penjualan"
+        if jenis == "pembelian" and "penjualan" in nama:
+            continue
+        for peringkat, kunci in enumerate(urut):
+            if kunci in nama:
+                cocok.append((peringkat, -berkas.stat().st_mtime, berkas))
+                break
+    if not cocok:
+        return None
+    cocok.sort(key=lambda x: (x[0], x[1]))
+    return cocok[0][2]
 
 
 def muat_penjualan(sumber) -> pd.DataFrame:
     df = _baca(sumber) if isinstance(sumber, Path) else pd.read_csv(sumber)
+    # Ekspor bertingkat halaman mengulang baris header di tengah data.
+    df = df[df["TGL FAKTUR"].astype(str) != "TGL FAKTUR"].reset_index(drop=True)
     df["TGL FAKTUR"] = pd.to_datetime(df["TGL FAKTUR"])
     for kol in ["HARGA BELI", "QTY", "@HARGA", "TOTAL HARGA"]:
         df[kol] = pd.to_numeric(df[kol], errors="coerce").fillna(0)
@@ -160,26 +197,49 @@ def muat_piutang(sumber) -> pd.DataFrame:
     return df
 
 
+_BULAN_SINGKAT_KE_NOMOR = {v.lower(): k for k, v in BULAN_SINGKAT.items()}
+POLA_PARFUM = r"UMAIR|ALPHASCENT"
+
+
+def _tanggal_fleksibel(nilai):
+    """Terima tanggal biasa maupun tulisan Indonesia seperti '01 Agu 2026'."""
+    if isinstance(nilai, str):
+        cocok = re.match(r"(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})", nilai.strip())
+        if cocok:
+            bulan = _BULAN_SINGKAT_KE_NOMOR.get(cocok.group(2).lower())
+            if bulan:
+                return pd.Timestamp(int(cocok.group(3)), bulan, int(cocok.group(1)))
+    return pd.to_datetime(nilai, errors="coerce")
+
+
 def muat_pembelian(sumber) -> pd.DataFrame:
     df = _baca(sumber) if isinstance(sumber, Path) else pd.read_csv(sumber)
-    df["Tanggal"] = pd.to_datetime(df["Tanggal"], errors="coerce")
+    df = df[df["Cabang"].astype(str) != "Cabang"].copy()
+    df["Tanggal"] = df["Tanggal"].map(_tanggal_fleksibel)
     for kol in ["Kuantitas", "Total Harga"]:
         df[kol] = pd.to_numeric(df[kol], errors="coerce").fillna(0)
     df["Cabang"] = df["Cabang"].astype(str).str.upper().str.strip()
-    return df
+
+    # Berkas pembelian mentah memuat seluruh kategori. Saring ke parfum lewat
+    # nama barang, bukan kolom kategori, karena sebagian entri parfum salah
+    # dikategorikan sebagai AKSESORIS. Kalau berkasnya sudah tersaring,
+    # langkah ini tidak mengubah apa pun.
+    parfum = df["Nama Barang"].astype(str).str.upper().str.contains(POLA_PARFUM, na=False)
+    return df[parfum].reset_index(drop=True)
 
 
 def muat_semua(folder: str | Path = "data") -> dict:
     folder = Path(folder)
-    berkas = {
-        "penjualan": _cari(folder, "penjualan*.csv.gz", "penjualan*.csv", "*penjualan*.xlsx"),
-        "piutang": _cari(folder, "piutang*.csv.gz", "piutang*.csv", "*belum_lunas*.xlsx"),
-        "pembelian": _cari(folder, "pembelian*.csv.gz", "pembelian*.csv", "*embelian*.xlsx"),
-    }
+    berkas = {jenis: _cari(folder, jenis) for jenis in KUNCI}
     kurang = [k for k, v in berkas.items() if v is None]
     if kurang:
+        terlihat = sorted(b.name for b in _kandidat(folder) + _kandidat(folder.parent))
         raise FileNotFoundError(
-            "Berkas berikut tidak ditemukan di folder data/: " + ", ".join(kurang)
+            "Berkas untuk " + ", ".join(kurang) + " tidak ditemukan di folder "
+            f"'{folder}' maupun folder aplikasi.\n\nBerkas yang terbaca: "
+            + (", ".join(terlihat) if terlihat else "tidak ada satu pun")
+            + ".\n\nNama berkas harus memuat kata 'penjualan', 'belum_lunas' "
+              "atau 'piutang', dan 'pembelian'."
         )
     return {
         "penjualan": muat_penjualan(berkas["penjualan"]),
