@@ -128,6 +128,32 @@ def _kandidat(folder: Path) -> list[Path]:
             if p.is_file() and p.name.lower().endswith(EKSTENSI)]
 
 
+def _kolom_berkas(berkas: Path) -> set[str]:
+    """Baca baris header saja, untuk mengenali jenis berkas pembelian."""
+    try:
+        if berkas.suffix.lower() in {".xlsx", ".xls"}:
+            contoh = pd.read_excel(berkas, header=None, nrows=1).dropna(axis=1, how="all")
+            return {str(v).strip() for v in contoh.iloc[0]}
+        return {str(k).strip() for k in pd.read_csv(berkas, nrows=0).columns}
+    except Exception:
+        return set()
+
+
+def jenis_pembelian(berkas: Path) -> str:
+    """Bedakan pembelian cabang dari pembelian gudang pusat.
+
+    Keduanya sama-sama bernama "pembelian", jadi yang dipakai adalah isinya:
+    berkas cabang punya kolom Cabang, berkas gudang pusat tidak punya kolom
+    itu dan hanya memuat pemasok.
+    """
+    kolom = _kolom_berkas(berkas)
+    if "Cabang" in kolom:
+        return "cabang"
+    if kolom:
+        return "pusat"
+    return "cabang"
+
+
 def _cari(folder: Path, jenis: str) -> Path | None:
     """Cari berkas untuk satu jenis data di folder data/ maupun folder aplikasi.
 
@@ -136,17 +162,21 @@ def _cari(folder: Path, jenis: str) -> Path | None:
     yang paling baru diubah, supaya ekspor terbaru menang tanpa perlu menghapus
     berkas lama.
     """
-    urut = KUNCI[jenis]
+    pokok = "pembelian" if jenis.startswith("pembelian") else jenis
+    urut = KUNCI[pokok]
     cocok = []
     for berkas in _kandidat(folder) + _kandidat(folder.parent):
         nama = berkas.name.lower()
         # "pembelian" jangan sampai menyambar "rincian_faktur_penjualan"
-        if jenis == "pembelian" and "penjualan" in nama:
+        if pokok == "pembelian" and "penjualan" in nama:
             continue
         for peringkat, kunci in enumerate(urut):
             if kunci in nama:
                 cocok.append((peringkat, -berkas.stat().st_mtime, berkas))
                 break
+    if pokok == "pembelian":
+        diminta = "pusat" if jenis.endswith("pusat") else "cabang"
+        cocok = [c for c in cocok if jenis_pembelian(c[2]) == diminta]
     if not cocok:
         return None
     cocok.sort(key=lambda x: (x[0], x[1]))
@@ -228,10 +258,28 @@ def muat_pembelian(sumber) -> pd.DataFrame:
     return df[parfum].reset_index(drop=True)
 
 
+def muat_pembelian_pusat(sumber) -> pd.DataFrame:
+    """Faktur pembelian gudang pusat ke pemasok — sumber angka stok masuk."""
+    df = _baca(sumber) if isinstance(sumber, Path) else pd.read_csv(sumber)
+    df = df[df["Tanggal"].astype(str) != "Tanggal"].copy()
+    df["Tanggal"] = df["Tanggal"].map(_tanggal_fleksibel)
+    for kol in ["Kuantitas", "Total Harga"]:
+        df[kol] = pd.to_numeric(df[kol], errors="coerce").fillna(0)
+    df["KODE BARANG"] = df["Kode #"].astype(str).str.strip()
+    df["NAMA BARANG"] = df["Nama Barang"].astype(str).str.strip()
+    # Saring lewat nama barang, bukan kolom kategori: satu varian tercatat
+    # berkategori "Umum" padahal parfum.
+    parfum = df["NAMA BARANG"].str.upper().str.contains(POLA_PARFUM, na=False)
+    return df[parfum].reset_index(drop=True)
+
+
 def muat_semua(folder: str | Path = "data") -> dict:
     folder = Path(folder)
-    berkas = {jenis: _cari(folder, jenis) for jenis in KUNCI}
-    kurang = [k for k, v in berkas.items() if v is None]
+    berkas = {jenis: _cari(folder, jenis)
+              for jenis in ["penjualan", "piutang", "pembelian", "pembelian_pusat"]}
+    # Pembelian gudang pusat bersifat tambahan: tanpa berkas itu, stok masuk
+    # diisi manual lewat dashboard.
+    kurang = [k for k in ["penjualan", "piutang", "pembelian"] if berkas[k] is None]
     if kurang:
         terlihat = sorted(b.name for b in _kandidat(folder) + _kandidat(folder.parent))
         raise FileNotFoundError(
@@ -239,12 +287,16 @@ def muat_semua(folder: str | Path = "data") -> dict:
             f"'{folder}' maupun folder aplikasi.\n\nBerkas yang terbaca: "
             + (", ".join(terlihat) if terlihat else "tidak ada satu pun")
             + ".\n\nNama berkas harus memuat kata 'penjualan', 'belum_lunas' "
-              "atau 'piutang', dan 'pembelian'."
+              "atau 'piutang', dan 'pembelian'. Berkas pembelian cabang dikenali "
+              "dari kolom 'Cabang'; berkas pembelian gudang pusat dari tidak "
+              "adanya kolom itu."
         )
     return {
         "penjualan": muat_penjualan(berkas["penjualan"]),
         "piutang": muat_piutang(berkas["piutang"]),
         "pembelian": muat_pembelian(berkas["pembelian"]),
+        "pembelian_pusat": (muat_pembelian_pusat(berkas["pembelian_pusat"])
+                            if berkas["pembelian_pusat"] is not None else None),
     }
 
 
@@ -320,23 +372,41 @@ def status_penagihan(jual: pd.DataFrame, piutang: pd.DataFrame) -> dict:
 # 4 & 5. Persediaan
 # --------------------------------------------------------------------------
 
-def kerangka_stok(jual: pd.DataFrame) -> pd.DataFrame:
-    """Kerangka kartu stok gudang pusat, satu baris per SKU.
+def kerangka_stok(jual: pd.DataFrame, pusat: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Kartu stok gudang pusat, satu baris per varian.
 
-    Stok awal dan barang masuk tidak ada di berkas mana pun (tidak ada entitas
-    gudang pusat pada faktur pembelian), jadi dua kolom itu diisi manual lewat
-    dashboard dan bawaannya nol.
+    Kolom "Masuk" diisi otomatis dari faktur pembelian gudang pusat bila
+    berkasnya tersedia. Varian yang sudah dibeli tetapi belum pernah terjual
+    ikut muncul, karena justru varian itulah yang stoknya menumpuk.
+    "Stok awal" tetap manual: tidak ada berkas yang merekam posisi sebelum
+    faktur pertama.
     """
-    if jual.empty:
-        return pd.DataFrame(columns=["KODE BARANG", "NAMA BARANG", "Stok awal",
-                                     "Masuk", "Terjual", "Sisa stok"])
-    tabel = (
-        jual.groupby(["KODE BARANG", "NAMA BARANG"])
-        .agg(Terjual=("QTY", "sum"))
-        .reset_index()
+    terjual = (
+        jual.groupby([jual["KODE BARANG"].astype(str), "NAMA BARANG"])
+        .agg(Terjual=("QTY", "sum")).reset_index()
+        .rename(columns={"level_0": "KODE BARANG"})
+        if not jual.empty else
+        pd.DataFrame(columns=["KODE BARANG", "NAMA BARANG", "Terjual"])
     )
+    if not terjual.empty:
+        terjual.columns = ["KODE BARANG", "NAMA BARANG", "Terjual"]
+
+    if pusat is not None and not pusat.empty:
+        masuk = (pusat.groupby("KODE BARANG")
+                 .agg(Masuk=("Kuantitas", "sum"), NAMA=("NAMA BARANG", "last"))
+                 .reset_index())
+    else:
+        masuk = pd.DataFrame(columns=["KODE BARANG", "Masuk", "NAMA"])
+
+    tabel = masuk.merge(terjual, on="KODE BARANG", how="outer")
+    if tabel.empty:
+        return pd.DataFrame(columns=["KODE BARANG", "NAMA BARANG", "Stok awal",
+                                     "Masuk", "Terjual"])
+    tabel["NAMA BARANG"] = tabel["NAMA BARANG"].fillna(tabel.get("NAMA"))
+    tabel["Masuk"] = pd.to_numeric(tabel["Masuk"], errors="coerce").fillna(0).astype(int)
+    tabel["Terjual"] = pd.to_numeric(tabel["Terjual"], errors="coerce").fillna(0).astype(int)
     tabel["Stok awal"] = 0
-    tabel["Masuk"] = 0
+    tabel = tabel.sort_values("Masuk", ascending=False).reset_index(drop=True)
     return tabel[["KODE BARANG", "NAMA BARANG", "Stok awal", "Masuk", "Terjual"]]
 
 
@@ -358,11 +428,19 @@ def hitung_stok(kartu: pd.DataFrame, harga_modal: dict | None = None) -> pd.Data
     return tabel
 
 
-def modal_satuan(jual: pd.DataFrame) -> dict:
-    if jual.empty:
-        return {}
-    ringkas = jual.groupby("KODE BARANG").agg(m=("MODAL", "sum"), q=("QTY", "sum"))
-    return {k: (r.m / r.q if r.q else 0) for k, r in ringkas.iterrows()}
+def modal_satuan(jual: pd.DataFrame, pusat: pd.DataFrame | None = None) -> dict:
+    """Modal per pcs. Faktur pembelian gudang pusat dipakai lebih dulu karena
+    memuat varian yang belum pernah terjual."""
+    harga = {}
+    if jual is not None and not jual.empty:
+        ringkas = jual.groupby(jual["KODE BARANG"].astype(str)).agg(
+            m=("MODAL", "sum"), q=("QTY", "sum"))
+        harga.update({k: (r.m / r.q if r.q else 0) for k, r in ringkas.iterrows()})
+    if pusat is not None and not pusat.empty:
+        ringkas = pusat.groupby("KODE BARANG").agg(
+            m=("Total Harga", "sum"), q=("Kuantitas", "sum"))
+        harga.update({k: (r.m / r.q if r.q else 0) for k, r in ringkas.iterrows()})
+    return harga
 
 
 def sebaran_persediaan(jual: pd.DataFrame, beli: pd.DataFrame) -> pd.DataFrame:

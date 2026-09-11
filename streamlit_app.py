@@ -57,12 +57,17 @@ def ambil_data():
             f1 = st.file_uploader("Faktur penjualan parfum", type=["csv", "gz", "xlsx"])
             f2 = st.file_uploader("Faktur belum lunas", type=["csv", "gz", "xlsx"])
             f3 = st.file_uploader("Faktur pembelian cabang", type=["csv", "gz", "xlsx"])
+            f4 = st.file_uploader("Faktur pembelian gudang pusat (opsional)",
+                                  type=["csv", "gz", "xlsx"],
+                                  help="Tanpa berkas ini, stok masuk diisi manual.")
             if not (f1 and f2 and f3):
-                st.info("Unggah ketiga berkas untuk melanjutkan.")
+                st.info("Unggah tiga berkas pertama untuk melanjutkan. "
+                        "Berkas pembelian gudang pusat bersifat opsional.")
                 st.stop()
             return {"penjualan": an.muat_penjualan(f1),
                     "piutang": an.muat_piutang(f2),
-                    "pembelian": an.muat_pembelian(f3)}
+                    "pembelian": an.muat_pembelian(f3),
+                    "pembelian_pusat": an.muat_pembelian_pusat(f4) if f4 else None}
     try:
         return _muat(str(Path(__file__).parent / "data"))
     except FileNotFoundError as e:
@@ -72,7 +77,8 @@ def ambil_data():
 
 
 data = ambil_data()
-jual_penuh, piutang_penuh, beli_penuh = data["penjualan"], data["piutang"], data["pembelian"]
+jual_penuh, piutang_penuh = data["penjualan"], data["piutang"]
+beli_penuh, pusat = data["pembelian"], data["pembelian_pusat"]
 
 
 # --------------------------------------------------------------------------
@@ -252,13 +258,21 @@ st.dataframe(tampil_varian, use_container_width=True, hide_index=True)
 # --------------------------------------------------------------------------
 
 st.header("4. Sisa stok persediaan parfum")
-st.warning(
-    "**Tidak ada berkas yang memuat pembelian gudang pusat.** Faktur pembelian yang "
-    "tersedia hanya milik 18 cabang, tidak ada entitas pusat di dalamnya. Karena itu "
-    "stok awal dan barang masuk diisi manual di tabel bawah ini. Setelah diisi, sisa "
-    "stok terhitung otomatis dan bisa disimpan sebagai berkas `.json`.")
+if pusat is not None and not pusat.empty:
+    st.success(
+        f"**Stok masuk terbaca otomatis** dari {an.angka(pusat['Nomor #'].nunique())} faktur "
+        f"pembelian gudang pusat ({an.angka(pusat['Kuantitas'].sum())} pcs senilai "
+        f"{an.rupiah(pusat['Total Harga'].sum())}, pemasok "
+        f"{', '.join(sorted(set(pusat['Pemasok'].astype(str))))}). Kolom *Masuk* boleh "
+        "dikoreksi manual bila ada penerimaan yang belum difakturkan.")
+else:
+    st.warning(
+        "**Berkas pembelian gudang pusat belum ada di folder data.** Tanpa berkas itu "
+        "stok awal dan barang masuk harus diisi manual di tabel bawah ini.")
+st.caption("Posisi stok dihitung kumulatif dari seluruh data dan tidak ikut berubah "
+           "saat filter tahun, bulan, atau cabang di panel kiri diubah.")
 
-kerangka = an.kerangka_stok(jual)
+kerangka = an.kerangka_stok(jual_penuh, pusat)
 if "kartu_stok" not in st.session_state or \
         list(st.session_state["kartu_stok"]["KODE BARANG"]) != list(kerangka["KODE BARANG"]):
     st.session_state["kartu_stok"] = kerangka
@@ -276,7 +290,8 @@ with s2:
             st.error(f"Gagal membaca berkas: {e}")
 
 with s1:
-    st.markdown("**Kartu stok gudang pusat** — isi kolom *Stok awal* dan *Masuk*")
+    st.markdown("**Kartu stok gudang pusat** — *Terjual* dari faktur penjualan, "
+                "*Masuk* dari faktur pembelian pusat, *Stok awal* diisi manual")
     diedit = st.data_editor(
         st.session_state["kartu_stok"],
         key="editor_stok", use_container_width=True, hide_index=True,
@@ -284,12 +299,13 @@ with s1:
             "KODE BARANG": st.column_config.TextColumn("Kode", disabled=True),
             "NAMA BARANG": st.column_config.TextColumn("Nama barang", disabled=True),
             "Stok awal": st.column_config.NumberColumn("Stok awal", min_value=0, step=1),
-            "Masuk": st.column_config.NumberColumn("Masuk", min_value=0, step=1),
+            "Masuk": st.column_config.NumberColumn("Masuk", min_value=0, step=1,
+                                                   help="Terisi dari faktur pembelian gudang pusat"),
             "Terjual": st.column_config.NumberColumn("Terjual", disabled=True),
         })
 st.session_state["kartu_stok"] = diedit
 
-stok = an.hitung_stok(diedit, an.modal_satuan(jual))
+stok = an.hitung_stok(diedit, an.modal_satuan(jual_penuh, pusat))
 with s2:
     st.download_button("Simpan pengaturan (.json)",
                        an.pengaturan_ke_json(diedit).encode("utf-8"),
@@ -302,7 +318,15 @@ t2.metric("Terjual", f"{an.angka(stok['Terjual'].sum())} pcs")
 sisa_total = int(stok["Sisa stok"].sum())
 t3.metric("Sisa stok", f"{an.angka(sisa_total)} pcs",
           delta="perlu dicek" if sisa_total < 0 else None, delta_color="inverse")
-t4.metric("Nilai sisa stok", an.rupiah(stok.get("Nilai sisa", pd.Series([0])).sum()))
+t4.metric("Nilai sisa stok", an.rupiah(stok.get("Nilai sisa", pd.Series([0])).sum()),
+          help="Dihitung pada harga beli gudang pusat")
+diam = stok[(stok["Terjual"] == 0) & (stok["Sisa stok"] > 0)]
+if len(diam):
+    st.warning(
+        f"**{an.angka(len(diam))} dari {an.angka(len(stok))} varian belum terjual sama sekali** "
+        f"— {an.angka(diam['Sisa stok'].sum())} pcs senilai "
+        f"{an.rupiah(diam.get('Nilai sisa', pd.Series([0])).sum())} mengendap di gudang: "
+        + ", ".join(diam["NAMA BARANG"]) + ".")
 if sisa_total < 0:
     st.error("Sisa stok negatif — kuantiti terjual melebihi stok yang dicatat masuk. "
              "Periksa kembali isian stok awal dan barang masuk.")

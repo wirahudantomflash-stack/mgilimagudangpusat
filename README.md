@@ -29,11 +29,16 @@ Main file path: `streamlit_app.py`
 Taruh berkas ekspor terbaru di folder `data/`. Nama berkas tidak perlu diganti —
 pemuat mengenali berkas dari kata kunci di dalam namanya:
 
-| Data | Nama berkas harus memuat |
-| --- | --- |
-| Penjualan | `penjualan` |
-| Piutang | `belum_lunas` atau `piutang` |
-| Pembelian | `pembelian` |
+| Data | Nama berkas harus memuat | Wajib |
+| --- | --- | --- |
+| Penjualan | `penjualan` | ya |
+| Piutang | `belum_lunas` atau `piutang` | ya |
+| Pembelian cabang | `pembelian`, dan **ada kolom `Cabang`** | ya |
+| Pembelian gudang pusat | `pembelian`, dan **tidak ada kolom `Cabang`** | tidak |
+
+Dua berkas pembelian dibedakan dari isinya, bukan namanya: berkas cabang punya
+kolom `Cabang`, berkas gudang pusat tidak. Tanpa berkas pembelian gudang pusat,
+kolom *Masuk* pada kartu stok harus diisi manual.
 
 Format yang diterima: `.csv.gz`, `.csv`, `.xlsx`. Berkas `.xlsx` mentah dari
 sistem bisa dipakai langsung — baris header yang terulang dibuang sendiri,
